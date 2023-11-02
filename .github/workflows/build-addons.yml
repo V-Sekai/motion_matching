@@ -6,169 +6,241 @@ name: Builds
 on:
   # Triggers the workflow on push or pull request events but only for the "main" branch
   push:
-    branches: [ "main" ]
+    branches: ["main"]
+    tags:
+      - "*"
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
 env:
-    LIBRARY_PATH: addons/MotionMatching/bin
+  LIBRARY_PATH: addons/MotionMatching/bin
 
 jobs:
-    build:
-        runs-on:  ${{matrix.os}}
-        name: ${{matrix.name}}
-        strategy:
-          fail-fast: false
-          matrix:
-            include:
-              - identifier: windows-debug
-                os: windows-latest
-                name: 🏁 Windows Debug
-                target: template_debug
-                platform: windows
-                arch: x86_64
-                toolset: msvc
-                platform_version: 2022
-              - identifier: windows-release
-                os: windows-latest
-                name: 🏁 Windows Release
-                target: template_release
-                platform: windows
-                arch: x86_64
-                toolset: msvc
-                platform_version: 2022
-              - identifier: macos-debug
-                os: macos-latest
-                name: 🍎 macOS (universal) Debug
-                target: template_debug
-                platform: macos
-                arch: universal
-                toolset: clang
-                platform_version: 11
-              - identifier: macos-release
-                os: macos-latest
-                name: 🍎 macOS (universal) Release
-                target: template_release
-                platform: macos
-                arch: universal
-                toolset: clang
-                platform_version: 11
-              - identifier: linux-debug
-                os: ubuntu-latest
-                name: 🐧 Linux Debug
-                runner: ubuntu-22.04
-                target: template_debug
-                platform: linux
-                arch: x86_64
-                toolset: gcc
-                platform_version: 20.04
-              - identifier: linux-release
-                os: ubuntu-latest
-                name: 🐧 Linux Release
-                runner: ubuntu-22.04
-                target: template_release
-                platform: linux
-                arch: x86_64
-                toolset: gcc
-                platform_version: 20.04
-    
-        steps:
+  build:
+    runs-on: ${{matrix.os}}
+    name: ${{matrix.name}}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - identifier: windows-debug
+            os: windows-latest
+            name: 🏁 Windows Debug
+            target: template_debug
+            platform: windows
+            arch: x86_64
+            toolset: msvc
+            platform_version: 2022
+          - identifier: windows-release
+            os: windows-latest
+            name: 🏁 Windows Release
+            target: template_release
+            platform: windows
+            arch: x86_64
+            toolset: msvc
+            platform_version: 2022
+          - identifier: macos-debug
+            os: macos-latest
+            name: 🍎 macOS (universal) Debug
+            target: template_debug
+            platform: macos
+            arch: universal
+            toolset: clang
+            platform_version: 11
+          - identifier: macos-release
+            os: macos-latest
+            name: 🍎 macOS (universal) Release
+            target: template_release
+            platform: macos
+            arch: universal
+            toolset: clang
+            platform_version: 11
+          - identifier: linux-debug
+            os: ubuntu-latest
+            name: 🐧 Linux Debug
+            runner: ubuntu-22.04
+            target: template_debug
+            platform: linux
+            arch: x86_64
+            toolset: gcc
+            platform_version: 20.04
+          - identifier: linux-release
+            os: ubuntu-latest
+            name: 🐧 Linux Release
+            runner: ubuntu-22.04
+            target: template_release
+            platform: linux
+            arch: x86_64
+            toolset: gcc
+            platform_version: 20.04
 
-            -   name: Checkout project
-                uses: actions/checkout@v3
-                with:
-                    submodules: recursive
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
 
-            -   name: Set up Python
-                uses: actions/setup-python@v4
-                with:
-                    python-version: '3.x'
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.x"
 
-            -   name: Install Python Packages Windows
-                if: ${{ matrix.platform == 'windows' }}
-                run: python -m pip install scons pywin32       
-            -   name: Install Python Packages Others
-                if: ${{ matrix.platform != 'windows' }}
-                run: python -m pip install scons
+      - name: Install Python Packages Windows
+        if: ${{ matrix.platform == 'windows' }}
+        run: python -m pip install scons pywin32
+      - name: Install Python Packages Others
+        if: ${{ matrix.platform != 'windows' }}
+        run: python -m pip install scons
 
-            -   name: Download and install Boost
-                id: install-boost
-                uses: MarkusJx/install-boost@v2.4.4
-                with:
-                    boost_version: 1.81.0
-                    # The toolset used to compile boost, e.g. "msvc"
-                    toolset: ${{ matrix.toolset }} # optional, default is 
-                    # The platform version boost was compiled on, e.g. "18.04"
-                    platform_version: ${{ matrix.platform_version }} # optional, default is 
-                    # Whether the boost libraries are linked statically or dynamically
-                    #link: # optional, default is 
-                    # The architecture the binaries were built for
-                    arch: x86 # optional, default is x86
-                    # The dirctory to install boost into
-                    #boost_install_dir: boost_1_81_0 # optional, default is 
-                    # Wheter to use actions/cache to improve build times
-                    cache: true # optional, default is true
-            
-            -   name: Submodule Hash Windows
-                if: ${{ matrix.platform == 'windows' }}
-                run: echo "SUBMODULE_HASH=$( git rev-parse HEAD:godot-cpp )" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
-            -   name: Submodule Hash MACOS
-                if: ${{ matrix.platform == 'macos' }}
-                run: echo "SUBMODULE_HASH=$( git rev-parse HEAD:godot-cpp )" >> $GITHUB_ENV
-            -   name: Submodule Hash Linux
-                if: ${{ matrix.platform == 'linux' }}
-                run: echo "SUBMODULE_HASH=$( git rev-parse HEAD:godot-cpp )" >> $GITHUB_ENV
+      - name: Download and install Boost
+        id: install-boost
+        uses: MarkusJx/install-boost@v2.4.4
+        with:
+          boost_version: 1.81.0
+          # The toolset used to compile boost, e.g. "msvc"
+          toolset: ${{ matrix.toolset }} # optional, default is
+          # The platform version boost was compiled on, e.g. "18.04"
+          platform_version: ${{ matrix.platform_version }} # optional, default is
+          # Whether the boost libraries are linked statically or dynamically
+          #link: # optional, default is
+          # The architecture the binaries were built for
+          arch: x86 # optional, default is x86
+          # The dirctory to install boost into
+          #boost_install_dir: boost_1_81_0 # optional, default is
+          # Wheter to use actions/cache to improve build times
+          cache: true # optional, default is true
 
-            -   name: MSVC Developer Command Prompt
-                if: ${{ matrix.platform == 'windows' }}
-                uses: ilammy/msvc-dev-cmd@v1
+      - name: Submodule Hash Windows
+        if: ${{ matrix.platform == 'windows' }}
+        run: echo "SUBMODULE_HASH=$( git rev-parse HEAD:godot-cpp )" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
+      - name: Submodule Hash MACOS
+        if: ${{ matrix.platform == 'macos' }}
+        run: echo "SUBMODULE_HASH=$( git rev-parse HEAD:godot-cpp )" >> $GITHUB_ENV
+      - name: Submodule Hash Linux
+        if: ${{ matrix.platform == 'linux' }}
+        run: echo "SUBMODULE_HASH=$( git rev-parse HEAD:godot-cpp )" >> $GITHUB_ENV
 
-            # -   name: Cache Godot Library
-            #     id: cache-godot-cpp
-            #     uses: actions/cache@v3
-            #     with:
-            #         path: |
-            #             ${{ github.workspace }}/godot-cpp/bin
-            #             ${{ github.workspace }}/godot-cpp/include
-            #             ${{ github.workspace }}/godot-cpp/gen
-            #         key: ${{ runner.os }}-${{ env.SUBMODULE_HASH }}
-            
-            # -   name: Compile Godot Library
-            #     if: steps.cache-godot-cpp.outputs.cache-hit != 'true'
-            #     run: |
-            #           scons -j8 platform=${{ matrix.platform }} target=${{ matrix.target }} arch=${{ matrix.arch }}
-            #     working-directory: godot-cpp
+      - name: MSVC Developer Command Prompt
+        if: ${{ matrix.platform == 'windows' }}
+        uses: ilammy/msvc-dev-cmd@v1
 
-            -   name: Compile Addon
-                run:  scons  
-                        disable_exceptions=false
-                        platform=${{ matrix.platform }} 
-                        target=${{ matrix.target }} 
-                        arch=${{ matrix.arch }} 
-                        Boost_INCLUDE_DIR=${{steps.install-boost.outputs.BOOST_ROOT}}/include/
-                        Boost_LIBRARY_DIRS=${{steps.install-boost.outputs.BOOST_ROOT}}/lib
-                env:
-                    BOOST_ROOT: ${{ steps.install-boost.outputs.BOOST_ROOT }}
-        
-            -   name: Upload Artifact Windows
-                if: ${{ matrix.platform == 'windows' }}
-                uses: actions/upload-artifact@v3
-                with:
-                  name: ${{ matrix.identifier }}
-                  if-no-files-found: error
-                  path: |
-                    ${{ github.workspace }}\${{ env.LIBRARY_PATH }}
-                    !**\*.lib
-                    !**\*.exp
+      # -   name: Cache Godot Library
+      #     id: cache-godot-cpp
+      #     uses: actions/cache@v3
+      #     with:
+      #         path: |
+      #             ${{ github.workspace }}/godot-cpp/bin
+      #             ${{ github.workspace }}/godot-cpp/include
+      #             ${{ github.workspace }}/godot-cpp/gen
+      #         key: ${{ runner.os }}-${{ env.SUBMODULE_HASH }}
 
-            -   name: Upload Artifact Others
-                if: ${{ matrix.platform != 'windows' }}
-                uses: actions/upload-artifact@v3
-                with:
-                    name: ${{ matrix.identifier }}
-                    path: ${{ github.workspace }}/${{ env.LIBRARY_PATH }}
-                    if-no-files-found: error
+      # -   name: Compile Godot Library
+      #     if: steps.cache-godot-cpp.outputs.cache-hit != 'true'
+      #     run: |
+      #           scons -j8 platform=${{ matrix.platform }} target=${{ matrix.target }} arch=${{ matrix.arch }}
+      #     working-directory: godot-cpp
 
+      - name: Compile Addon
+        run: scons
+          disable_exceptions=false
+          platform=${{ matrix.platform }}
+          target=${{ matrix.target }}
+          arch=${{ matrix.arch }}
+          Boost_INCLUDE_DIR=${{steps.install-boost.outputs.BOOST_ROOT}}/include/
+          Boost_LIBRARY_DIRS=${{steps.install-boost.outputs.BOOST_ROOT}}/lib
+        env:
+          BOOST_ROOT: ${{ steps.install-boost.outputs.BOOST_ROOT }}
+
+      - name: Upload Artifact Windows
+        if: ${{ matrix.platform == 'windows' }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.identifier }}
+          if-no-files-found: error
+          path: |
+            ${{ github.workspace }}\${{ env.LIBRARY_PATH }}
+            !**\*.lib
+            !**\*.exp
+
+      - name: Upload Artifact Others
+        if: ${{ matrix.platform != 'windows' }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.identifier }}
+          path: ${{ github.workspace }}/${{ env.LIBRARY_PATH }}
+          if-no-files-found: error
+
+  release:
+    needs: [build]
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: windows-debug
+          path: windows-debug
+      - name: Download Artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: windows-release
+          path: windows-release
+      - name: Download Artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: macos-debug
+          path: macos-debug
+      - name: Download Artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: macos-release
+          path: macos-release
+      - name: Download Artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: linux-debug
+          path: linux-debug
+      - name: Download Artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: linux-release
+          path: linux-release
+
+      - name: List files in directories
+        run: |
+          ls -R windows-debug
+          ls -R windows-release
+          ls -R macos-debug
+          ls -R macos-release
+          ls -R linux-debug
+          ls -R linux-release
+
+      - name: Archive files
+        run: |
+          zip -r windows-debug.zip windows-debug
+          zip -r windows-release.zip windows-release
+          zip -r macos-debug.zip macos-debug
+          zip -r macos-release.zip macos-release
+          zip -r linux-debug.zip linux-debug
+          zip -r linux-release.zip linux-release
+
+      - name: Create and Upload Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            windows-debug.zip
+            windows-release.zip
+            macos-debug.zip
+            macos-release.zip
+            linux-debug.zip
+            linux-release.zip
+          body: "This is motion matching for Godot Engine release"
+          generate_release_notes: true
+          draft: true
+          prerelease: true
+          append_body: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
